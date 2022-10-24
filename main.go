@@ -4,7 +4,6 @@ import (
 	"context"
 	"flagon/command"
 	"flagon/tracing"
-	"flagon/version"
 	"fmt"
 	"io"
 	"os"
@@ -21,19 +20,20 @@ func main() {
 func Run(args []string) int {
 
 	appName := "flagon"
-	appVersion := version.VersionNumber()
 
-	exporter, err := tracing.ConfigFromEnvironment()
+	cfg, err := tracing.ConfigFromEnvironment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading tracing configuration: %s\n", err.Error())
+		return 1
+	}
+
+	ctx := context.Background()
+	shutdown, err := tracing.Configure(ctx, appName, cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error configuring tracing: %s\n", err.Error())
 		return 1
 	}
-
-	shutdown, err := tracing.Configure(context.Background(), appName, appVersion, exporter)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error initialising tracing: %s\n", err.Error())
-		return 1
-	}
+	defer shutdown(ctx)
 
 	stdOut, stdErr := configureOutput()
 

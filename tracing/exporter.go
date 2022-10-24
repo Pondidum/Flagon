@@ -12,6 +12,7 @@ import (
 
 	otlpgrpc "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	otlphttp "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -20,17 +21,22 @@ const OtlpTracesEndpointEnvVar = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 const OtlpHeaders = "OTEL_EXPORTER_OTLP_HEADERS"
 const OtelDebugEnvVar = "OTEL_DEBUG"
 
+const OtelTraceExporterEnvVar = "OTEL_TRACE_EXPORTER"
+
 type ExporterConfig struct {
 	Endpoint string
 	Headers  map[string]string
 	Debug    bool
+
+	ExporterType string
 }
 
 func DefaultConfig() *ExporterConfig {
 	return &ExporterConfig{
-		Endpoint: "localhost:4317",
-		Headers:  map[string]string{},
-		Debug:    false,
+		Endpoint:     "localhost:4317",
+		Headers:      map[string]string{},
+		Debug:        false,
+		ExporterType: "",
 	}
 }
 func ConfigFromEnvironment() (*ExporterConfig, error) {
@@ -61,10 +67,26 @@ func ConfigFromEnvironment() (*ExporterConfig, error) {
 		}
 	}
 
+	if val := os.Getenv(OtelTraceExporterEnvVar); val != "" {
+		config.ExporterType = val
+	}
+
 	return config, nil
 }
 
 func createExporter(ctx context.Context, conf *ExporterConfig) (sdktrace.SpanExporter, error) {
+
+	if conf.ExporterType == "" {
+		return &NoopExporter{}, nil
+	}
+
+	if conf.ExporterType == "stdout" {
+		return stdouttrace.New(stdouttrace.WithPrettyPrint())
+	}
+
+	if conf.ExporterType == "stderr" {
+		return stdouttrace.New(stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stderr))
+	}
 
 	endpoint := strings.ToLower(conf.Endpoint)
 	u, err := url.Parse(endpoint)
@@ -151,3 +173,8 @@ func isLoopbackAddress(endpoint string) (bool, error) {
 
 	return allAreLoopback, nil
 }
+
+type NoopExporter struct{}
+
+func (nsb *NoopExporter) ExportSpans(context.Context, []sdktrace.ReadOnlySpan) error { return nil }
+func (nsb *NoopExporter) Shutdown(context.Context) error                             { return nil }

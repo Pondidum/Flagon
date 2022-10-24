@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"flagon/version"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,7 +14,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
-func Configure(ctx context.Context, appName string, version string, exporterConfig *ExporterConfig) (func(ctx context.Context) error, error) {
+func Configure(ctx context.Context, appName string, exporterConfig *ExporterConfig) (func(ctx context.Context) error, error) {
 
 	exporter, err := createExporter(ctx, exporterConfig)
 	if err != nil {
@@ -25,7 +26,7 @@ func Configure(ctx context.Context, appName string, version string, exporterConf
 		tracesdk.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String(appName),
-			semconv.ServiceVersionKey.String(version),
+			semconv.ServiceVersionKey.String(version.VersionNumber()),
 		)),
 	)
 
