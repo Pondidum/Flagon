@@ -13,5 +13,12 @@ func Commands(ui cli.Ui) map[string]cli.CommandFactory {
 
 			return cmd, nil
 		},
+
+		"state": func() (cli.Command, error) {
+			cmd := &StateCommand{}
+			cmd.Meta = NewMeta(ui, cmd)
+
+			return cmd, nil
+		},
 	}
 }
