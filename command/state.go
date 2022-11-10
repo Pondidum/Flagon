@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"flagon/backends"
+	"flagon/backends/launchdarkly"
 	"flagon/tracing"
 	"fmt"
 	"strconv"
@@ -91,6 +92,14 @@ func (c *StateCommand) createBackend(ctx context.Context) (backends.Backend, err
 	defer span.End()
 
 	switch c.backend {
+	case "launchdarkly":
+
+		cfg, err := launchdarkly.ConfigFromEnvironment()
+		if err != nil {
+			return nil, tracing.Error(span, err)
+		}
+
+		return launchdarkly.CreateBackend(ctx, cfg)
 
 	default:
 		return nil, fmt.Errorf("unsupported backend: %s", c.backend)

@@ -13,6 +13,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.11.0
 	go.opentelemetry.io/otel/sdk v1.11.1
 	go.opentelemetry.io/otel/trace v1.11.1
+	gopkg.in/launchdarkly/go-sdk-common.v2 v2.5.1
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	google.golang.org/grpc v1.50.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/launchdarkly/go-jsonstream.v1 v1.0.1 // indirect
-	gopkg.in/launchdarkly/go-sdk-common.v2 v2.5.1 // indirect
 	gopkg.in/launchdarkly/go-sdk-events.v1 v1.1.1 // indirect
 	gopkg.in/launchdarkly/go-server-sdk-evaluation.v1 v1.5.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -63,6 +63,7 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/testify v1.8.0
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.11.1
 	golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2 // indirect
 	golang.org/x/sys v0.0.0-20221010170243-090e33056c14 // indirect
 	gopkg.in/launchdarkly/go-server-sdk.v5 v5.10.0

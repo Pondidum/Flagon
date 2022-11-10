@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/launchdarkly/go-sdk-common.v2/lduser"
 	"gopkg.in/launchdarkly/go-sdk-common.v2/ldvalue"
 	ld "gopkg.in/launchdarkly/go-server-sdk.v5"
 	"gopkg.in/launchdarkly/go-server-sdk.v5/interfaces"
+	"gopkg.in/launchdarkly/go-server-sdk.v5/ldcomponents"
 )
 
 var tr = otel.Tracer("backend.launch_darkly")
@@ -24,16 +26,32 @@ func CreateBackend(ctx context.Context, cfg LaunchDarklyConfiguration) (*LaunchD
 	ctx, span := tr.Start(ctx, "create_backend")
 	defer span.End()
 
-	client, err := ld.MakeClient(cfg.ApiKey, cfg.Timeout)
+	ldConfig := ld.Config{
+		DiagnosticOptOut: true,
+	}
+
+	if cfg.Debug {
+		ldConfig.Logging = ldcomponents.Logging()
+	} else {
+		ldConfig.Logging = ldcomponents.NoLogging()
+	}
+
+	client, err := ld.MakeCustomClient(cfg.SdkKey, ldConfig, cfg.Timeout)
 	if err != nil {
 		return nil, tracing.Error(span, err)
 	}
-
 	client.GetDataSourceStatusProvider().WaitFor(interfaces.DataSourceStateValid, 5*time.Second)
 	return &LaunchDarklyBackend{
 		client: client,
 	}, nil
 
+}
+
+func (ldb *LaunchDarklyBackend) Close(ctx context.Context) error {
+	_, span := tr.Start(ctx, "close")
+	defer span.End()
+
+	return ldb.client.Close()
 }
 
 func (ldb *LaunchDarklyBackend) State(ctx context.Context, flag backends.Flag, user backends.User) (bool, error) {
@@ -42,19 +60,30 @@ func (ldb *LaunchDarklyBackend) State(ctx context.Context, flag backends.Flag, u
 
 	u := createUser(ctx, user)
 
-	variation, err := ldb.client.BoolVariation(flag.Key, u, flag.DefaultValue)
+	span.SetAttributes(attribute.String("flag.key", flag.Key))
+
+	variation, detail, err := ldb.client.BoolVariationDetail(flag.Key, u, flag.DefaultValue)
 	if err != nil {
-		return flag.DefaultValue, err
+		return flag.DefaultValue, tracing.Error(span, err)
 	}
+
+	span.SetAttributes(attribute.String("reason", detail.Reason.String()))
+	span.SetAttributes(attribute.Bool("variation", variation))
 
 	return variation, nil
 }
 
 func createUser(ctx context.Context, user backends.User) lduser.User {
+	ctx, span := tr.Start(ctx, "create_user")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("attr.key", user.Key))
+
 	builder := lduser.NewUserBuilder(user.Key)
 
 	for key, value := range user.Attributes {
 
+		span.SetAttributes(attribute.String("attr."+key, value))
 		cleanKey := strings.ToLower(strings.ReplaceAll(key, "_", ""))
 
 		switch cleanKey {
