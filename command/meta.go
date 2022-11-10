@@ -1,10 +1,9 @@
 package command
 
 import (
-	"bufio"
 	"context"
 	"flagon/tracing"
-	"io"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
@@ -18,14 +17,9 @@ type Meta struct {
 
 	tr  trace.Tracer
 	cmd NamedCommand
-}
 
-func NewMeta(ui cli.Ui, cmd NamedCommand) Meta {
-	return Meta{
-		Ui:  ui,
-		cmd: cmd,
-		tr:  otel.Tracer(cmd.Name()),
-	}
+	backend string
+	output  string
 }
 
 type NamedCommand interface {
@@ -36,26 +30,17 @@ type NamedCommand interface {
 	RunContext(ctx context.Context, args []string) error
 }
 
-func (m *Meta) Flags(c NamedCommand) *pflag.FlagSet {
-	f := pflag.NewFlagSet(c.Name(), pflag.ContinueOnError)
-	f.Usage = func() { m.Ui.Output(m.Help()) }
+type FlagGroup struct {
+	*pflag.FlagSet
+	Name string
+}
 
-	// add common flags etc here
-
-	// Create an io.Writer that writes to our UI properly for errors.
-	// This is kind of a hack, but it does the job. Basically: create
-	// a pipe, use a scanner to break it into lines, and output each line
-	// to the UI. Do this forever.
-	errR, errW := io.Pipe()
-	errScanner := bufio.NewScanner(errR)
-	go func() {
-		for errScanner.Scan() {
-			m.Ui.Error(errScanner.Text())
-		}
-	}()
-	f.SetOutput(errW)
-
-	return f
+func NewMeta(ui cli.Ui, cmd NamedCommand) Meta {
+	return Meta{
+		Ui:  ui,
+		cmd: cmd,
+		tr:  otel.Tracer(cmd.Name()),
+	}
 }
 
 func (m *Meta) AutocompleteFlags() complete.Flags {
@@ -68,7 +53,62 @@ func (m *Meta) AutocompleteArgs() complete.Predictor {
 }
 
 func (m *Meta) Help() string {
-	return m.cmd.Synopsis() + "\n\n" + m.cmd.Flags().FlagUsages()
+	sb := strings.Builder{}
+
+	sb.WriteString(m.cmd.Synopsis())
+	sb.WriteString("\n\n")
+
+	for _, group := range m.allFlags() {
+		sb.WriteString(group.Name)
+		sb.WriteString(" flags")
+		sb.WriteString("\n\n")
+		sb.WriteString(group.FlagUsages())
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+
+	// return m.cmd.Synopsis() + "\n\n" + combineFlags(m.allFlags()).FlagUsages()
+}
+
+func combineFlags(groups []FlagGroup) *pflag.FlagSet {
+
+	if len(groups) == 0 {
+		return nil
+	}
+
+	flags := pflag.NewFlagSet(groups[0].Name, pflag.ContinueOnError)
+
+	for _, f := range groups {
+		flags.AddFlagSet(f.FlagSet)
+	}
+
+	return flags
+}
+
+func newFlagGroup(name string) FlagGroup {
+	return FlagGroup{
+		FlagSet: pflag.NewFlagSet(name, pflag.ContinueOnError),
+		Name:    name,
+	}
+}
+
+func (m *Meta) allFlags() []FlagGroup {
+
+	common := newFlagGroup("Common")
+
+	common.StringVar(&m.backend, "backend", "launchdarkly", "which flag service to use")
+	common.StringVar(&m.output, "output", "json", "specifies the output format")
+
+	return []FlagGroup{
+		{Name: "Command", FlagSet: m.cmd.Flags()},
+		common,
+		m.launchDarklyFlags(),
+	}
+}
+
+func (m *Meta) launchDarklyFlags() FlagGroup {
+	return newFlagGroup("LaunchDarkly Backend")
 }
 
 func (m *Meta) Run(args []string) int {
@@ -77,7 +117,7 @@ func (m *Meta) Run(args []string) int {
 	ctx, span := m.tr.Start(ctx, m.cmd.Name())
 	defer span.End()
 
-	f := m.cmd.Flags()
+	f := combineFlags(m.allFlags())
 
 	if err := f.Parse(args); err != nil {
 		tracing.Error(span, err)

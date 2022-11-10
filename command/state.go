@@ -14,9 +14,6 @@ import (
 type StateCommand struct {
 	Meta
 
-	backend string
-	output  string
-
 	userKey        string
 	userAttributes []string
 }
@@ -31,9 +28,6 @@ func (c *StateCommand) Synopsis() string {
 
 func (c *StateCommand) Flags() *pflag.FlagSet {
 	flags := pflag.NewFlagSet(c.Name(), pflag.ContinueOnError)
-
-	flags.StringVar(&c.backend, "backend", "launchdarkly", "which flag service to use")
-	flags.StringVar(&c.output, "output", "json", "specifies the output format")
 
 	flags.StringVar(&c.userKey, "user", "", "The key/id of the user to query a flag against")
 	flags.StringSliceVar(&c.userAttributes, "attr", []string{}, "key=value pairs of additional properties for the user")
