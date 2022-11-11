@@ -4,7 +4,13 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/spf13/pflag"
 )
+
+const SdkKeyEnvVar = "FLAGON_LD_SDKKEY"
+const TimeoutEnvVar = "FLAGON_LD_TIMEOUT"
+const DebugEnvVar = "FLAGON_LD_DEBUG"
 
 type LaunchDarklyConfiguration struct {
 	SdkKey  string
@@ -12,22 +18,40 @@ type LaunchDarklyConfiguration struct {
 	Debug   bool
 }
 
-const SdkKeyEnvVar = "FLAGON_LD_SDKKEY"
-const TimeoutSecondsEnvVar = "FLAGON_LD_TIMEOUT_SECONDS"
-const DebugEnvVar = "FLAGON_LD_DEBUG"
+func (cfg *LaunchDarklyConfiguration) OverrideFrom(other LaunchDarklyConfiguration) {
+	if other.Debug {
+		cfg.Debug = other.Debug
+	}
 
-func ConfigFromEnvironment() (LaunchDarklyConfiguration, error) {
+	if other.SdkKey != "" {
+		cfg.SdkKey = other.SdkKey
+	}
+
+	if other.Timeout > 0 {
+		cfg.Timeout = other.Timeout
+	}
+}
+
+func (cfg *LaunchDarklyConfiguration) Flags() *pflag.FlagSet {
+	flags := pflag.NewFlagSet("LaunchDarkly Backend", pflag.ContinueOnError)
+
+	flags.BoolVar(&cfg.Debug, "ld-debug", false, "enable debug logging for launchdarkly")
+	flags.StringVar(&cfg.SdkKey, "ld-sdk-key", "", "the sdk-key to use")
+	flags.DurationVar(&cfg.Timeout, "ld-timeout", 0, "timeout before failing to communicate with launchdarkly")
+
+	return flags
+}
+
+func ConfigFromEnvironment() LaunchDarklyConfiguration {
 
 	cfg := LaunchDarklyConfiguration{}
 	cfg.SdkKey = os.Getenv(SdkKeyEnvVar)
-	cfg.Timeout = 10 * time.Second
 
-	if val := os.Getenv(TimeoutSecondsEnvVar); val != "" {
-		i, err := strconv.Atoi(val)
-		if err != nil {
-			return cfg, err
+	if val := os.Getenv(TimeoutEnvVar); val != "" {
+		if timeout, err := time.ParseDuration(val); err == nil {
+			cfg.Timeout = timeout
 		}
-		cfg.Timeout = time.Second * time.Duration(i)
+
 	}
 
 	if val := os.Getenv(DebugEnvVar); val != "" {
@@ -35,5 +59,13 @@ func ConfigFromEnvironment() (LaunchDarklyConfiguration, error) {
 		cfg.Debug = err == nil && b
 	}
 
-	return cfg, nil
+	return cfg
+}
+
+func DefaultConfig() LaunchDarklyConfiguration {
+	return LaunchDarklyConfiguration{
+		SdkKey:  "",
+		Timeout: 2 * time.Second,
+		Debug:   false,
+	}
 }

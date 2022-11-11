@@ -2,13 +2,17 @@ package command
 
 import (
 	"context"
+	"flagon/backends"
+	"flagon/backends/launchdarkly"
 	"flagon/tracing"
+	"fmt"
 	"strings"
 
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 	"github.com/spf13/pflag"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -20,6 +24,8 @@ type Meta struct {
 
 	backend string
 	output  string
+
+	ldFlags launchdarkly.LaunchDarklyConfiguration
 }
 
 type NamedCommand interface {
@@ -40,6 +46,8 @@ func NewMeta(ui cli.Ui, cmd NamedCommand) Meta {
 		Ui:  ui,
 		cmd: cmd,
 		tr:  otel.Tracer(cmd.Name()),
+
+		ldFlags: launchdarkly.LaunchDarklyConfiguration{},
 	}
 }
 
@@ -67,8 +75,6 @@ func (m *Meta) Help() string {
 	}
 
 	return sb.String()
-
-	// return m.cmd.Synopsis() + "\n\n" + combineFlags(m.allFlags()).FlagUsages()
 }
 
 func combineFlags(groups []FlagGroup) *pflag.FlagSet {
@@ -103,12 +109,29 @@ func (m *Meta) allFlags() []FlagGroup {
 	return []FlagGroup{
 		{Name: "Command", FlagSet: m.cmd.Flags()},
 		common,
-		m.launchDarklyFlags(),
+		{Name: "LaunchDarkly Backend", FlagSet: m.ldFlags.Flags()},
+		// other backend flags here
 	}
 }
 
-func (m *Meta) launchDarklyFlags() FlagGroup {
-	return newFlagGroup("LaunchDarkly Backend")
+func (m *Meta) createBackend(ctx context.Context) (backends.Backend, error) {
+	ctx, span := m.tr.Start(ctx, "create_backend")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("backend", m.backend))
+
+	switch m.backend {
+	case "launchdarkly":
+
+		cfg := launchdarkly.DefaultConfig()
+		cfg.OverrideFrom(launchdarkly.ConfigFromEnvironment())
+		cfg.OverrideFrom(m.ldFlags)
+
+		return launchdarkly.CreateBackend(ctx, cfg)
+
+	default:
+		return nil, fmt.Errorf("unsupported backend: %s", m.backend)
+	}
 }
 
 func (m *Meta) Run(args []string) int {
