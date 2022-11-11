@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/setup-go@v3
+      with:
+        go-version: "1.18"
+
+    - uses: actions/checkout@v2
+
+    - name: Download Modules
+      run: go mod download
+
+    - name: Generate
+      run: go generate ./...
+
+    - name: Build
+      run: go build -ldflags="-X flagon/version.GitCommit=${{ github.sha }} -X flagon/version.Prerelease="""
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Publish Release
+      if: github.ref_name == 'main'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./.github/workflows/create-release.sh
