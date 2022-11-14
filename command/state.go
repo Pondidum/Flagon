@@ -85,5 +85,9 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 
 	span.SetAttributes(attribute.Bool("flag.value", flag.Value))
 
-	return nil
+	if flag.Value {
+		return nil
+	}
+
+	return &SilentError{}
 }
