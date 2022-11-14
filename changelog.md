@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.2] - 2022-11-14
+
+### Fixed
+
+- Releases in Github now publish the binary too
+
 ## [0.0.1] - 2022-11-14
 
 ### Added

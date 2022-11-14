@@ -19,8 +19,17 @@ EOF
 )
 
 
-curl -X POST \
+json=$(curl -X POST \
   --url "${URL}" \
   --header "Authorization: ${AUTH}" \
   --header "Accept: application/vnd.github+json" \
-  -d "${json}"
+  -d "${json}")
+
+upload_url=$(echo "$json" | sed -n 's,.*upload_url.*https://\(.*\){.*,\1,p')
+
+curl -X POST \
+  --url "https://${upload_url}?name=flagon" \
+  --header "Authorization: ${AUTH}" \
+  --header "Accept: application/vnd.github+json" \
+  --header "Content-Type: application/octet-stream" \
+  -d @flagon
