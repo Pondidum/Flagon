@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/pflag"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type StateCommand struct {
@@ -57,6 +58,10 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 		Key:          args[0],
 		DefaultValue: defaultValue,
 	}
+	span.SetAttributes(
+		attribute.String("flag.key", flag.Key),
+		attribute.Bool("flag.default", flag.DefaultValue),
+	)
 
 	attrs, err := parseKeyValuePairs(c.userAttributes)
 	if err != nil {
@@ -67,15 +72,22 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 		Key:        c.userKey,
 		Attributes: attrs,
 	}
+	span.SetAttributes(attribute.String("user.key", user.Key))
+	span.SetAttributes(tracing.FromMap("user.", user.Attributes)...)
 
-	value, err := backend.State(ctx, flag, user)
-	if err != nil {
+	if flag, err = backend.State(ctx, flag, user); err != nil {
 		return tracing.Error(span, err)
 	}
 
-	return print(c.Ui, c.output, map[string]interface{}{
-		"flag":    flag.Key,
-		"default": flag.DefaultValue,
-		"state":   value,
-	})
+	if err := c.print(flag); err != nil {
+		return tracing.Error(span, err)
+	}
+
+	span.SetAttributes(attribute.Bool("flag.value", flag.Value))
+
+	if flag.Value {
+		return nil
+	}
+
+	return &SilentError{}
 }

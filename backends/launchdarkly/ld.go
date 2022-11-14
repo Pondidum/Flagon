@@ -54,7 +54,7 @@ func (ldb *LaunchDarklyBackend) Close(ctx context.Context) error {
 	return ldb.client.Close()
 }
 
-func (ldb *LaunchDarklyBackend) State(ctx context.Context, flag backends.Flag, user backends.User) (bool, error) {
+func (ldb *LaunchDarklyBackend) State(ctx context.Context, flag backends.Flag, user backends.User) (backends.Flag, error) {
 	ctx, span := tr.Start(ctx, "state")
 	defer span.End()
 
@@ -62,15 +62,19 @@ func (ldb *LaunchDarklyBackend) State(ctx context.Context, flag backends.Flag, u
 
 	span.SetAttributes(attribute.String("flag.key", flag.Key))
 
+	flag.Value = flag.DefaultValue
+
 	variation, detail, err := ldb.client.BoolVariationDetail(flag.Key, u, flag.DefaultValue)
 	if err != nil {
-		return flag.DefaultValue, tracing.Error(span, err)
+		return flag, tracing.Error(span, err)
 	}
 
 	span.SetAttributes(attribute.String("reason", detail.Reason.String()))
 	span.SetAttributes(attribute.Bool("variation", variation))
 
-	return variation, nil
+	flag.Value = variation
+
+	return flag, nil
 }
 
 func createUser(ctx context.Context, user backends.User) lduser.User {

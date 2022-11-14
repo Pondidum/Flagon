@@ -10,9 +10,10 @@ type User struct {
 type Flag struct {
 	Key          string
 	DefaultValue bool
+	Value        bool
 }
 
 type Backend interface {
-	State(ctx context.Context, flag Flag, user User) (bool, error)
+	State(ctx context.Context, flag Flag, user User) (Flag, error)
 	Close(ctx context.Context) error
 }

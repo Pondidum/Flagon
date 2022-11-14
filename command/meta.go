@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"flagon/backends"
 	"flagon/backends/launchdarkly"
 	"flagon/tracing"
@@ -24,6 +25,7 @@ type Meta struct {
 
 	backend string
 	output  string
+	silent  bool
 
 	ldFlags launchdarkly.LaunchDarklyConfiguration
 }
@@ -105,6 +107,7 @@ func (m *Meta) allFlags() []FlagGroup {
 
 	common.StringVar(&m.backend, "backend", "launchdarkly", "which flag service to use")
 	common.StringVar(&m.output, "output", "json", "specifies the output format")
+	common.BoolVar(&m.silent, "silent", false, "don't print anything to stdout/stderr")
 
 	return []FlagGroup{
 		{Name: "Command", FlagSet: m.cmd.Flags()},
@@ -134,6 +137,25 @@ func (m *Meta) createBackend(ctx context.Context) (backends.Backend, error) {
 	}
 }
 
+func (m *Meta) print(vals interface{}) error {
+
+	if m.silent {
+		return nil
+	}
+
+	switch m.output {
+	case "json":
+		b, err := json.Marshal(vals)
+		if err != nil {
+			return err
+		}
+		m.Ui.Output(string(b))
+
+	}
+
+	return nil
+}
+
 func (m *Meta) Run(args []string) int {
 	ctx := context.Background()
 
@@ -152,8 +174,10 @@ func (m *Meta) Run(args []string) int {
 	tracing.StoreFlags(ctx, f)
 
 	if err := m.cmd.RunContext(ctx, f.Args()); err != nil {
-		tracing.Error(span, err)
-		m.Ui.Error(err.Error())
+		if !IsSilentError(err) {
+			tracing.Error(span, err)
+			m.Ui.Error(err.Error())
+		}
 
 		return 1
 	}

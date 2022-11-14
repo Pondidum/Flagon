@@ -12,17 +12,18 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func SetAttributes(ctx context.Context, attrs ...attribute.KeyValue) {
-	s := trace.SpanFromContext(ctx)
-	s.SetAttributes(attrs...)
+func FromMap[V any](prefix string, m map[string]V) []attribute.KeyValue {
+
+	attrs := make([]attribute.KeyValue, 0, len(m))
+
+	for k, v := range m {
+		attrs = append(attrs, asAttribute(k, v))
+	}
+
+	return attrs
 }
 
-func SetAttribute(ctx context.Context, key string, val interface{}) {
-	s := trace.SpanFromContext(ctx)
-	s.SetAttributes(asAttribute(key, val))
-}
-
-func asAttribute(key string, v interface{}) attribute.KeyValue {
+func asAttribute(key string, v any) attribute.KeyValue {
 
 	switch val := v.(type) {
 
