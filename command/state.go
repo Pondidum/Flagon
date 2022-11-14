@@ -68,14 +68,13 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 		Attributes: attrs,
 	}
 
-	value, err := backend.State(ctx, flag, user)
-	if err != nil {
+	if flag, err = backend.State(ctx, flag, user); err != nil {
 		return tracing.Error(span, err)
 	}
 
-	return print(c.Ui, c.output, map[string]interface{}{
-		"flag":    flag.Key,
-		"default": flag.DefaultValue,
-		"state":   value,
-	})
+	if err := c.print(flag); err != nil {
+		return tracing.Error(span, err)
+	}
+
+	return nil
 }

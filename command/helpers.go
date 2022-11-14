@@ -1,11 +1,8 @@
 package command
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/mitchellh/cli"
 )
 
 func parseKeyValuePairs(tags []string) (map[string]string, error) {
@@ -32,19 +29,4 @@ func parseKeyValuePairs(tags []string) (map[string]string, error) {
 	}
 
 	return m, nil
-}
-
-func print(ui cli.Ui, format string, vals map[string]interface{}) error {
-
-	switch format {
-	case "json":
-		b, err := json.Marshal(vals)
-		if err != nil {
-			return err
-		}
-		ui.Output(string(b))
-
-	}
-
-	return nil
 }
