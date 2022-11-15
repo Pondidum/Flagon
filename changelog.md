@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.3] - 2022-11-15
+
+### Fixed
+
+- Fix the build's upload binary call, which was truncating the binary file
+
+### Changed
+
+- Statically link the binary in github actions
+
 ## [0.0.2] - 2022-11-14
 
 ### Fixed
