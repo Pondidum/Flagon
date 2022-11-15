@@ -34,6 +34,12 @@ jobs:
     - name: Test
       run: go test -v ./...
 
+    - name: Store Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: flagon
+        path: flagon
+
     - name: Publish Release
       if: github.ref_name == 'main'
       env:
