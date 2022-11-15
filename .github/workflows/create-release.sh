@@ -31,5 +31,5 @@ curl -X POST \
   --url "https://${upload_url}?name=flagon" \
   --header "Authorization: ${AUTH}" \
   --header "Accept: application/vnd.github+json" \
-  --header "Content-Type: application/octet-stream" \
-  -d @flagon
+  --header "Content-Type: $(file -b --mime-type flagon)" \
+  --data-binary @flagon
