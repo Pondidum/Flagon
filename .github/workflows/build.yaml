@@ -29,6 +29,10 @@ jobs:
       run: go generate ./...
 
     - name: Build
+      env:
+        GOOS: linux
+        GOARCH: amd64
+        CGO_ENABLED: "0"
       run: go build -ldflags="-X flagon/version.GitCommit=${{ github.sha }} -X flagon/version.Prerelease="""
 
     - name: Test
