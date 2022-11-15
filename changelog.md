@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.4] - 2022-11-15
+
+### Added
+
+- Add github action.yaml to the repository
+
 ## [0.0.3] - 2022-11-15
 
 ### Fixed

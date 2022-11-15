@@ -1,0 +1,27 @@
+name: 'Setup Flagon'
+description: Add the Flagon tool to the environment
+inputs:
+  version:
+    description: The release version number to use
+    required: true
+outputs:
+  tool-path:
+    description: The absolute path to flagon
+    value: ${{ steps.setup.outputs.absolute_path }}
+runs:
+  using: composite
+  steps:
+  - id: setup
+    shell: sh
+    run: |
+      binary_dir="${RUNNER_TOOL_CACHE}/flagon/${{ inputs.version }}"
+      binary_path="${binary_dir}/flagon"
+
+      if ! [ -x "${binary_path}" ]; then
+        mkdir -p "${binary_dir}"
+        curl -sSL https://github.com/Pondidum/Flagon/releases/download/${{ inputs.version }}/flagon -o "${binary_path}"
+        chmod +x "${binary_path}"
+      fi
+
+      echo "${binary_dir}" >> "${GITHUB_PATH}"
+      echo "absolute_path=${binary_path}" >> "${GITHUB_OUTPUT}"
