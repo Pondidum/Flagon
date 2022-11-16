@@ -28,6 +28,8 @@ type Meta struct {
 	silent  bool
 
 	ldFlags launchdarkly.LaunchDarklyConfiguration
+
+	testBackend backends.Backend
 }
 
 type NamedCommand interface {
@@ -120,6 +122,11 @@ func (m *Meta) allFlags() []FlagGroup {
 func (m *Meta) createBackend(ctx context.Context) (backends.Backend, error) {
 	ctx, span := m.tr.Start(ctx, "create_backend")
 	defer span.End()
+
+	if m.testBackend != nil {
+		span.SetAttributes(attribute.String("backend", "mock"))
+		return m.testBackend, nil
+	}
 
 	span.SetAttributes(attribute.String("backend", m.backend))
 

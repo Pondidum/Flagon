@@ -49,15 +49,19 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 	}
 	defer backend.Close(ctx)
 
-	defaultValue, err := strconv.ParseBool(args[1])
-	if err != nil {
-		return tracing.Error(span, err)
+	flag := backends.Flag{
+		Key: args[0],
 	}
 
-	flag := backends.Flag{
-		Key:          args[0],
-		DefaultValue: defaultValue,
+	if len(args) > 1 {
+		defaultValue, err := strconv.ParseBool(args[1])
+		if err != nil {
+			return tracing.Error(span, err)
+		}
+
+		flag.DefaultValue = defaultValue
 	}
+
 	span.SetAttributes(
 		attribute.String("flag.key", flag.Key),
 		attribute.Bool("flag.default", flag.DefaultValue),
