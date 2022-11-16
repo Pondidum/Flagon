@@ -8,9 +8,9 @@ type User struct {
 }
 
 type Flag struct {
-	Key          string
-	DefaultValue bool
-	Value        bool
+	Key          string `json:"key"`
+	DefaultValue bool   `json:"defaultValue"`
+	Value        bool   `json:"value"`
 }
 
 type Backend interface {
