@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.5] - 2022-11-17
+
+### Added
+
+- Add tests around `state` command, fix default value handling
+
 ## [0.0.4] - 2022-11-15
 
 ### Added
