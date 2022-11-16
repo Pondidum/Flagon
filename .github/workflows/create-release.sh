@@ -8,6 +8,18 @@ URL="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases"
 version=$(./flagon version --short)
 body=$(./flagon version --changelog | awk '{printf "%s\\n", $0}' )
 
+
+release_code=$(curl -sSL \
+  --url "${URL}/tags/${version}" \
+  --header "Authorization: ${AUTH}" \
+  --header "Accept: application/vnd.github+json" \
+  -o /dev/null -w "%{http_code}")
+
+if [ "${release_code}" = "200" ]; then
+  echo "Release ${version} already exists, exiting"
+  exit 0
+fi
+
 json=$(cat <<EOF
 {
   "tag_name": "${version}",
