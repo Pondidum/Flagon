@@ -1,13 +1,20 @@
 name: 'Setup Flagon'
 description: Add the Flagon tool to the environment
+author: Andy Sammalmaa
+branding:
+  icon: flag
+  color: blue
+
 inputs:
   version:
     description: The release version number to use
     required: true
+
 outputs:
   tool-path:
     description: The absolute path to flagon
     value: ${{ steps.setup.outputs.absolute_path }}
+
 runs:
   using: composite
   steps:
