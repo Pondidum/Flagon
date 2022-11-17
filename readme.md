@@ -22,6 +22,26 @@ else
 fi
 ```
 
+## Github Actions
+
+Add `pondidum/flagon` as a step in your job, and the `flagon` binary will be available on your `$PATH` in subsequent steps:
+
+```yaml
+steps:
+- name: Configure Flagon
+  uses: pondidum/flagon@main
+```
+
+Optionally, you can specify which version of flagon to use, otherwise the latest release is used:
+
+```yaml
+steps:
+- name: Configure Flagon
+  uses: pondidum/flagon@main
+  with:
+    version: 0.0.5
+```
+
 ## Configuration
 
 ### Common
