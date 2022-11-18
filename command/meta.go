@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flagon/backends"
@@ -8,6 +9,7 @@ import (
 	"flagon/tracing"
 	"fmt"
 	"strings"
+	"text/template"
 
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
@@ -108,7 +110,7 @@ func (m *Meta) allFlags() []FlagGroup {
 	common := newFlagGroup("Common")
 
 	common.StringVar(&m.backend, "backend", "launchdarkly", "which flag service to use")
-	common.StringVar(&m.output, "output", "json", "specifies the output format")
+	common.StringVar(&m.output, "output", "json", "specifies the output format: json or \"template=go template\"")
 	common.BoolVar(&m.silent, "silent", false, "don't print anything to stdout/stderr")
 
 	return []FlagGroup{
@@ -150,14 +152,25 @@ func (m *Meta) print(vals interface{}) error {
 		return nil
 	}
 
-	switch m.output {
-	case "json":
+	if m.output == "json" {
 		b, err := json.Marshal(vals)
 		if err != nil {
 			return err
 		}
 		m.Ui.Output(string(b))
+	} else if strings.HasPrefix(m.output, "template=") {
 
+		t, err := template.New(".").Parse(strings.TrimPrefix(m.output, "template="))
+		if err != nil {
+			return err
+		}
+
+		out := bytes.Buffer{}
+		if err := t.Execute(&out, vals); err != nil {
+			return err
+		}
+
+		m.Ui.Output(out.String())
 	}
 
 	return nil

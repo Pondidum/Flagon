@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.6] - 2022-11-18
+
+### Added
+
+- printing supports go templates: `--output "template={{ .Value }}"` for example
+
 ## [0.0.5] - 2022-11-17
 
 ### Added
