@@ -44,8 +44,17 @@ jobs:
         name: flagon
         path: flagon
 
-    - name: Publish Release
+    - name: Generate Release Notes
       if: github.ref_name == 'main'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./.github/workflows/create-release.sh
+      run: |
+        echo "FLAGON_VERSION=$(./flagon version --short)" >> "${GITHUB_ENV}"
+        ./flagon version --changelog --raw > release-notes.md
+
+    - name: Release
+      if: github.ref_name == 'main'
+      uses: softprops/action-gh-release@v1
+      with:
+        name: ${{ env.FLAGON_VERSION }}
+        tag_name: ${{ env.FLAGON_VERSION }}
+        body_path: release-notes.md
+        files: flagon
