@@ -68,6 +68,30 @@ func TestState(t *testing.T) {
 	}
 }
 
+func TestErrorsExitWithStatus2(t *testing.T) {
+
+	t.Run("bad boolean parse", func(t *testing.T) {
+
+		ui := cli.NewMockUi()
+		cmd := &StateCommand{}
+		cmd.Meta = NewMeta(ui, cmd)
+		cmd.Meta.testBackend = &MockBackend{flags: map[string]bool{}}
+
+		assert.Equal(t, 2, cmd.Run([]string{"test-flag", "bad-bool"}))
+		assert.Contains(t, ui.ErrorWriter.String(), "parsing \"bad-bool\": invalid syntax")
+	})
+
+	t.Run("backend fails", func(t *testing.T) {
+
+		ui := cli.NewMockUi()
+		cmd := &StateCommand{}
+		cmd.Meta = NewMeta(ui, cmd)
+
+		assert.Equal(t, 2, cmd.Run([]string{"test-flag", "false", "--backend", "non-existing-backend"}))
+		assert.Equal(t, "unsupported backend: non-existing-backend\n", ui.ErrorWriter.String())
+	})
+}
+
 type MockBackend struct {
 	flags map[string]bool
 }

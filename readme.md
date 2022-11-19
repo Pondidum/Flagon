@@ -15,7 +15,13 @@ The second reason is for debugging:  Is a particular flag on or off for a given 
 # { "name": "some-flag-name", "defaultValue": false, "value": true }
 ```
 
-Flagon will exit with a status code of `0` if the flag is enabled, and `1` otherwise.  If you need the command to always succeed, use `|| true`:
+Flagon's exit codes are as follows:
+
+- `0` the flag queried is on (`true`)
+- `1` the flag queried is off (`false`)
+- `1` an error occurred querying the flag
+
+If you need `flagon state`` to always succeed, use `|| true`:
 
 ```bash
 json=$(flagon state "some-flag-name" --user "${user_id}" --attr "branch=${branch}" || true)

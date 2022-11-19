@@ -194,12 +194,14 @@ func (m *Meta) Run(args []string) int {
 	tracing.StoreFlags(ctx, f)
 
 	if err := m.cmd.RunContext(ctx, f.Args()); err != nil {
-		if !IsSilentError(err) {
-			tracing.Error(span, err)
-			m.Ui.Error(err.Error())
+		if IsSilentError(err) {
+			return 1
 		}
 
-		return 1
+		tracing.Error(span, err)
+		m.Ui.Error(err.Error())
+
+		return 2
 	}
 
 	return 0

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.7] - 2022-11-19
+
+### Changed
+
+- `state` exit codes have been updated: `0` for flag on, `1` for flag off, `2` for error.
+
 ## [0.0.6] - 2022-11-18
 
 ### Added
