@@ -19,7 +19,7 @@ Flagon's exit codes are as follows:
 
 - `0` the flag queried is on (`true`)
 - `1` the flag queried is off (`false`)
-- `1` an error occurred querying the flag
+- `2` an error occurred querying the flag
 
 If you need `flagon state`` to always succeed, use `|| true`:
 
