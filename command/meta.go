@@ -8,6 +8,7 @@ import (
 	"flagon/backends/launchdarkly"
 	"flagon/tracing"
 	"fmt"
+	"os"
 	"strings"
 	"text/template"
 
@@ -18,6 +19,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
+
+const TraceParentEnvVar = "TRACEPARENT"
 
 type Meta struct {
 	Ui cli.Ui
@@ -177,7 +180,7 @@ func (m *Meta) print(vals interface{}) error {
 }
 
 func (m *Meta) Run(args []string) int {
-	ctx := context.Background()
+	ctx := tracing.WithTraceParent(context.Background(), os.Getenv(TraceParentEnvVar))
 
 	ctx, span := m.tr.Start(ctx, m.cmd.Name())
 	defer span.End()

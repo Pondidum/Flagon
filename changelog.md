@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.8] - 2023-01-27
+
+## Added
+
+- add support for `TRACEPARENT` environment variable; format matches the [w3 format](https://www.w3.org/TR/trace-context-1/).
+
 ## [0.0.7] - 2022-11-19
 
 ### Changed
