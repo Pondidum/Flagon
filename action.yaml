@@ -25,23 +25,26 @@ runs:
       version="${{ inputs.version }}"
 
       if [ -z "${version}" ]; then
+        echo "Querying latest flagon version"
         version=$(curl -sSL https://api.github.com/repos/Pondidum/Flagon/releases/latest | sed -n 's/.*tag_name.*"\(.*\)".*/\1/p')
       fi
+
+      echo "Version: ${version}"
 
       binary_dir="${RUNNER_TOOL_CACHE}/flagon/${version}"
       binary_path="${binary_dir}/flagon"
 
-      if ! [ -x "${binary_path}" ]; then
-        echo "Downloading Flagon ${version}"
+      if ! [ -f "${binary_path}" ]; then
+        echo "Downloading Flagon ${version}..."
         mkdir -p "${binary_dir}"
         curl -sSL https://github.com/Pondidum/Flagon/releases/download/${version}/flagon -o "${binary_path}"
-        chmod +x "${binary_path}"
 
         echo "Done"
       else
         echo "Flagon ${version} found in cache"
       fi
 
+      chmod +x "${binary_path}"
       ${binary_path} version
 
       echo "${binary_dir}" >> "${GITHUB_PATH}"
