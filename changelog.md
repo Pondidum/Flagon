@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.9] - 2023-05-16
+
+## Added
+
+- you can now use `pondidum/flagon/query` action to query a flag.  It assumes you have used `pondidum/flagon` to setup the tool first.
+
 ## [0.0.8] - 2023-01-27
 
 ## Added

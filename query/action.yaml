@@ -1,0 +1,74 @@
+name: 'Query Flag'
+description: Query a Flag's state
+author: Andy Sammalmaa
+branding:
+  icon: flag
+  color: blue
+
+inputs:
+  sdk_key:
+    description: The SDK Key for the environment you wish to query the flag from
+    default: ""
+    required: true
+  flag:
+    description: The key of the flag to query
+    default: ""
+    required: true
+  default_value:
+    description: The default state for the flag if the remote provider is not reachable
+    default: "false"
+    required: false
+  user:
+    description: The user key
+    default: ""
+    required: false
+  attributes:
+    description: A csv of key=value pairs to pass as attributes
+    default: ""
+    required: false
+
+outputs:
+  state:
+    description: The state of the flag
+    value: ${{ steps.query.outputs.state }}
+
+runs:
+  using: composite
+  steps:
+  - name: Query Flags
+    id: query
+    env:
+      FLAGON_LD_SDKKEY: ${{ inputs.sdk_key }}
+    shell: sh
+    run: |
+      user="${{ inputs.user }}"
+      ref="${{ github.ref_name }}"
+      attrs="${{ inputs.attributes }}"
+
+      echo "==> Querying Flag"
+      echo "    flag:       ${{ inputs.flag }}"
+      echo "    user:       ${user}"
+      echo "    ref:        ${ref}"
+      echo "    attributes: ${attrs}"
+
+      query() {
+        [ -n "${user}"  ] && set -- "$@" --user "${user}"
+        [ -n "${ref}"   ] && set -- "$@" --attr "ref=${ref}"
+        [ -n "${attrs}" ] && set -- "$@" --attr "${attrs}"
+
+        flagon state "$@" || true
+      }
+
+      echo "==> Querying LaunchDarkly..."
+
+      state=$(query \
+        "${{ inputs.flag }}" \
+        "${{ inputs.default_value }}" \
+        --output "template={{ .Value }}")
+
+      echo "--> state: ${state}"
+
+      echo "==> Setting outputs"
+      echo "state=${state}" >> "${GITHUB_OUTPUT}"
+
+      echo "--> Done"
