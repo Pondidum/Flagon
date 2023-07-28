@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10] - 2023-07-28
+
+## Added
+
+- support `--attr-file` flag and a default `flagon.attrs` file to load attributes from keyvalue pairs specified in a file
+- support `user-key=value` in attr file for setting the user key too
+
 ## [0.0.9] - 2023-05-16
 
 ## Added

@@ -1,21 +1,40 @@
 package command
 
 import (
+	"bufio"
 	"context"
 	"flagon/backends"
 	"flagon/tracing"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/pflag"
 	"go.opentelemetry.io/otel/attribute"
 )
+
+func NewStateCommand(ui cli.Ui) (*StateCommand, error) {
+	cmd := &StateCommand{
+		readFile: func(f string) (io.ReadCloser, error) {
+			return os.Open(f)
+		},
+	}
+	cmd.Meta = NewMeta(ui, cmd)
+
+	return cmd, nil
+}
 
 type StateCommand struct {
 	Meta
 
 	userKey        string
 	userAttributes []string
+
+	userAttributesFile string
+
+	readFile func(filePath string) (io.ReadCloser, error)
 }
 
 func (c *StateCommand) Name() string {
@@ -31,6 +50,7 @@ func (c *StateCommand) Flags() *pflag.FlagSet {
 
 	flags.StringVar(&c.userKey, "user", "", "The key/id of the user to query a flag against")
 	flags.StringSliceVar(&c.userAttributes, "attr", []string{}, "key=value pairs of additional properties for the user")
+	flags.StringVar(&c.userAttributesFile, "attr-file", "flagon.attrs", "a file containing additional properties for the user")
 
 	return flags
 }
@@ -67,9 +87,28 @@ func (c *StateCommand) RunContext(ctx context.Context, args []string) error {
 		attribute.Bool("flag.default", flag.DefaultValue),
 	)
 
-	attrs, err := parseKeyValuePairs(c.userAttributes)
+	lines := []string{}
+	if c.userAttributesFile != "" {
+		f, err := c.readFile(c.userAttributesFile)
+		if err == nil {
+			defer f.Close()
+			s := bufio.NewScanner(f)
+			for s.Scan() {
+				lines = append(lines, s.Text())
+			}
+		}
+	}
+
+	attrs, err := parseKeyValuePairs(append(lines, c.userAttributes...))
 	if err != nil {
 		return tracing.Error(span, err)
+	}
+
+	if key, found := attrs["user-key"]; found {
+		delete(attrs, "user-key")
+		if c.userKey == "" {
+			c.userKey = key
+		}
 	}
 
 	user := backends.User{
